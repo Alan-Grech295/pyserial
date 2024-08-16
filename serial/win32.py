@@ -103,6 +103,10 @@ GetOverlappedResult = _stdcall_libraries['kernel32'].GetOverlappedResult
 GetOverlappedResult.restype = BOOL
 GetOverlappedResult.argtypes = [HANDLE, LPOVERLAPPED, LPDWORD, BOOL]
 
+GetOverlappedResultEx = _stdcall_libraries['kernel32'].GetOverlappedResultEx
+GetOverlappedResultEx.restype = BOOL
+GetOverlappedResultEx.argtypes = [HANDLE, LPOVERLAPPED, LPDWORD, DWORD, BOOL]
+
 ResetEvent = _stdcall_libraries['kernel32'].ResetEvent
 ResetEvent.restype = BOOL
 ResetEvent.argtypes = [HANDLE]

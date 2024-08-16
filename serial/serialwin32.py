@@ -60,14 +60,14 @@ class Serial(SerialBase):
             win32.FILE_ATTRIBUTE_NORMAL | win32.FILE_FLAG_OVERLAPPED,
             0)
         if self._port_handle == win32.INVALID_HANDLE_VALUE:
-            self._port_handle = None    # 'cause __del__ is called anyway
+            self._port_handle = None  # 'cause __del__ is called anyway
             raise SerialException("could not open port {!r}: {!r}".format(self.portstr, ctypes.WinError()))
 
         try:
             self._overlapped_read = win32.OVERLAPPED()
             self._overlapped_read.hEvent = win32.CreateEvent(None, 1, 0, None)
             self._overlapped_write = win32.OVERLAPPED()
-            #~ self._overlapped_write.hEvent = win32.CreateEvent(None, 1, 0, None)
+            # ~ self._overlapped_write.hEvent = win32.CreateEvent(None, 1, 0, None)
             self._overlapped_write.hEvent = win32.CreateEvent(None, 0, 0, None)
 
             # Setup a 4k buffer
@@ -185,23 +185,23 @@ class Serial(SerialBase):
             if not self._rs485_mode.rts_level_for_tx:
                 raise ValueError(
                     'Unsupported value for RS485Settings.rts_level_for_tx: {!r} (only True is allowed)'.format(
-                        self._rs485_mode.rts_level_for_tx,))
+                        self._rs485_mode.rts_level_for_tx, ))
             if self._rs485_mode.rts_level_for_rx:
                 raise ValueError(
                     'Unsupported value for RS485Settings.rts_level_for_rx: {!r} (only False is allowed)'.format(
-                        self._rs485_mode.rts_level_for_rx,))
+                        self._rs485_mode.rts_level_for_rx, ))
             if self._rs485_mode.delay_before_tx is not None:
                 raise ValueError(
                     'Unsupported value for RS485Settings.delay_before_tx: {!r} (only None is allowed)'.format(
-                        self._rs485_mode.delay_before_tx,))
+                        self._rs485_mode.delay_before_tx, ))
             if self._rs485_mode.delay_before_rx is not None:
                 raise ValueError(
                     'Unsupported value for RS485Settings.delay_before_rx: {!r} (only None is allowed)'.format(
-                        self._rs485_mode.delay_before_rx,))
+                        self._rs485_mode.delay_before_rx, ))
             if self._rs485_mode.loopback:
                 raise ValueError(
                     'Unsupported value for RS485Settings.loopback: {!r} (only False is allowed)'.format(
-                        self._rs485_mode.loopback,))
+                        self._rs485_mode.loopback, ))
             comDCB.fRtsControl = win32.RTS_CONTROL_TOGGLE
             comDCB.fOutxCtsFlow = 0
 
@@ -223,8 +223,8 @@ class Serial(SerialBase):
                 'Cannot configure port, something went wrong. '
                 'Original message: {!r}'.format(ctypes.WinError()))
 
-    #~ def __del__(self):
-        #~ self.close()
+    # ~ def __del__(self):
+    # ~ self.close()
 
     def _close(self):
         """internal close port helper"""
@@ -285,10 +285,11 @@ class Serial(SerialBase):
                     ctypes.byref(self._overlapped_read))
                 if not read_ok and win32.GetLastError() not in (win32.ERROR_SUCCESS, win32.ERROR_IO_PENDING):
                     raise SerialException("ReadFile failed ({!r})".format(ctypes.WinError()))
-                result_ok = win32.GetOverlappedResult(
+                result_ok = win32.GetOverlappedResultEx(
                     self._port_handle,
                     ctypes.byref(self._overlapped_read),
                     ctypes.byref(rc),
+                    int(self.timeout * 1000),
                     True)
                 if not result_ok:
                     if win32.GetLastError() != win32.ERROR_OPERATION_ABORTED:
@@ -304,12 +305,12 @@ class Serial(SerialBase):
         """Output the given byte string over the serial port."""
         if not self.is_open:
             raise PortNotOpenError()
-        #~ if not isinstance(data, (bytes, bytearray)):
-            #~ raise TypeError('expected %s or bytearray, got %s' % (bytes, type(data)))
+        # ~ if not isinstance(data, (bytes, bytearray)):
+        # ~ raise TypeError('expected %s or bytearray, got %s' % (bytes, type(data)))
         # convert data (needed in case of memoryview instance: Py 3.1 io lib), ctypes doesn't like memoryview
         data = to_bytes(data)
         if data:
-            #~ win32event.ResetEvent(self._overlapped_write.hEvent)
+            # ~ win32event.ResetEvent(self._overlapped_write.hEvent)
             n = win32.DWORD()
             success = win32.WriteFile(self._port_handle, data, len(data), ctypes.byref(n), self._overlapped_write)
             if self._write_timeout != 0:  # if blocking (None) or w/ write timeout (>0)
@@ -317,8 +318,9 @@ class Serial(SerialBase):
                     raise SerialException("WriteFile failed ({!r})".format(ctypes.WinError()))
 
                 # Wait for the write to complete.
-                #~ win32.WaitForSingleObject(self._overlapped_write.hEvent, win32.INFINITE)
-                win32.GetOverlappedResult(self._port_handle, self._overlapped_write, ctypes.byref(n), True)
+                # ~ win32.WaitForSingleObject(self._overlapped_write.hEvent, win32.INFINITE)
+                win32.GetOverlappedResultEx(self._port_handle, self._overlapped_write, ctypes.byref(n),
+                                            int(self.timeout * 1000), True)
                 if win32.GetLastError() == win32.ERROR_OPERATION_ABORTED:
                     return n.value  # canceled IO is no error
                 if n.value != len(data):
