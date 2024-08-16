@@ -289,7 +289,7 @@ class Serial(SerialBase):
                     self._port_handle,
                     ctypes.byref(self._overlapped_read),
                     ctypes.byref(rc),
-                    int(self.timeout * 1000),
+                    int(self.timeout * 1000) if self.timeout is not None else 0xFFFFFFFF,
                     True)
                 if not result_ok:
                     if win32.GetLastError() != win32.ERROR_OPERATION_ABORTED:
@@ -320,7 +320,7 @@ class Serial(SerialBase):
                 # Wait for the write to complete.
                 # ~ win32.WaitForSingleObject(self._overlapped_write.hEvent, win32.INFINITE)
                 win32.GetOverlappedResultEx(self._port_handle, self._overlapped_write, ctypes.byref(n),
-                                            int(self.timeout * 1000), True)
+                                            int(self.timeout * 1000) if self.timeout is not None else 0xFFFFFFFF, True)
                 if win32.GetLastError() == win32.ERROR_OPERATION_ABORTED:
                     return n.value  # canceled IO is no error
                 if n.value != len(data):
